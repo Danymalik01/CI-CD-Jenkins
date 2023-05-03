@@ -3,37 +3,74 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo "Build stage"
+                // Build the code using Maven
+                sh 'mvn clean package'
             }
         }
         stage('Unit and Integration Tests') {
             steps {
-                echo "Unit and Integration Tests stage"
+                // Run unit tests using JUnit
+                sh 'mvn test'
+                // Run integration tests using Selenium WebDriver
+                sh 'mvn integration-test'
             }
         }
         stage('Code Analysis') {
             steps {
-                echo "Code Analysis stage"
+                // Integrate a code analysis tool to analyse the code using Jenkins
+                jenkinsCodeAnalysis tool: 'SonarQube'
             }
         }
         stage('Security Scan') {
             steps {
-                echo "Security Scan stage"
+                // Perform a security scan on the code using OWASP ZAP
+                sh 'docker run --rm owasp/zap2docker-stable zap-baseline.py -t http://localhost:8080'
             }
         }
         stage('Deploy to Staging') {
             steps {
-                echo "Deploy to Staging stage"
+                // Deploy the application to a staging server using SSH
+                sshPublisher(
+                    continueOnError: false, failOnError: true, publishers: [
+                        sshPublisherDesc(
+                            configName: 'StagingServer',
+                            verbose: true,
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: 'target/myapp.war',
+                                    removePrefix: 'target/',
+                                    remoteDirectory: '/var/www/myapp'
+                                )
+                            ]
+                        )
+                    ]
+                )
             }
         }
         stage('Integration Tests on Staging') {
             steps {
-                echo "Integration Tests on Staging stage"
+                // Run integration tests on the staging environment using Selenium WebDriver
+                sh 'mvn integration-test -Dwebdriver.chrome.driver=/path/to/chromedriver'
             }
         }
         stage('Deploy to Production') {
             steps {
-                echo "Deploy to Production stage"
+                // Deploy the application to a production server using SSH
+                sshPublisher(
+                    continueOnError: false, failOnError: true, publishers: [
+                        sshPublisherDesc(
+                            configName: 'ProductionServer',
+                            verbose: true,
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: 'target/myapp.war',
+                                    removePrefix: 'target/',
+                                    remoteDirectory: '/var/www/myapp'
+                                )
+                            ]
+                        )
+                    ]
+                )
             }
         }
     }
